@@ -1,5 +1,5 @@
 const mongoose = require("mongoose");
-require('dotenv').config(); // Only needed if you're testing locally with a .env file
+const dotenv = require('dotenv').config(); // Only needed if you're testing locally with a .env file
 
 mongoose.set('strictQuery', false);
 
