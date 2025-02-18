@@ -12,6 +12,13 @@ var userSchema = new mongoose.Schema({
         type:String,
         required:true,
         unique:true,
+        lowercase:true,
+        validate: {
+            validator:function (v) {
+                return /^[^\s@]+@[^\s@]+.[^\s@]+$/.test(v)
+            },
+            message : "Invalid email format",
+        }
     },
  
     password:{
@@ -22,7 +29,7 @@ var userSchema = new mongoose.Schema({
         type:String,
         default:"user",
     },
-    isBlocked:{
+    isActive:{
         type:Boolean,
         default:false,
     },

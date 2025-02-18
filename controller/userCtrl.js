@@ -36,20 +36,24 @@ const loginUserCtrl = asyncHandler (async (req, res) => {
             httpOnly:true,
             maxAge:72*60*60*1000,
         });
-        res.json({
-            _id : findUser._id,
-            name : findUser.name,
-            email : findUser.email,
+        res.status(200).json({
+            message : "Login successful.",
             accessToken : generateToken(findUser._id),
+            user : {
+                _id : findUser._id,
+                name : findUser.name,
+                email : findUser.email,
+                role : findUser.role,
+            },
         });
     } else {
-        throw new Error('Invalid Credentials');
+        throw new Error({message:'Invalid Credentials',});
     };
 });
 
 const getallUsers = asyncHandler ( async (req, res) => {
     try {
-        const users = await User.find();
+        const users = await User.find().sort('-createdAt');
         res.json(users);
     } catch (error) {
         throw new Error(error);
@@ -95,31 +99,31 @@ const updateaUser = asyncHandler (async (req, res) => {
     }
 });
 
-const blockUser = asyncHandler (async (req, res) => {
+const deactivateUser = asyncHandler (async (req, res) => {
     const {id} = req.params;
     validateMongoDbId(id);
     try {
-        const blockedUser = await User.findByIdAndUpdate(id, {
-            isBlocked : true
+        const deactivatedUser = await User.findByIdAndUpdate(id, {
+            isActive: false
         },{
             new:true
         });
-        res.json (blockedUser);
+        res.json (deactivatedUser);
     } catch (error) {
         throw new Error(error);
     }
 });
 
-const unblockUser = asyncHandler (async (req, res) => {
+const activateUser = asyncHandler (async (req, res) => {
     const {id} = req.params;
     validateMongoDbId(id);
     try {
-        const unblockedUser = await User.findByIdAndUpdate(id, {
-            isBlocked : false,
+        const activatedUser = await User.findByIdAndUpdate(id, {
+            isActive : true,
         },{
             new:true,
         });
-        res.json(unblockedUser);
+        res.json(activatedUser);
     } catch (error) {
         throw new Error(error);
     }
@@ -144,4 +148,4 @@ const handleRefreshToken = asyncHandler (async(req, res) => {
 
 
 
-module.exports = { createUser, loginUserCtrl, getaUser, getallUsers, deleteaUser, updateaUser, blockUser, unblockUser, handleRefreshToken, };
+module.exports = { createUser, loginUserCtrl, getaUser, getallUsers, deleteaUser, updateaUser, deactivateUser, activateUser, handleRefreshToken, };
