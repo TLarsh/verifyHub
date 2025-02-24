@@ -56,7 +56,7 @@ const getallUsers = asyncHandler ( async (req, res) => {
         const users = await User.find().sort('-createdAt');
         res.json(users);
     } catch (error) {
-        throw new Error(error);
+        throw new Error(error.message);
     };
 });
 
@@ -67,7 +67,7 @@ const getaUser = asyncHandler (async (req, res) => {
         const user = await User.findById(id);
         res.json(user);
     } catch (error) {
-        throw new Error(error);
+        throw new Error(error.message);
     };
 });
 
@@ -78,7 +78,7 @@ const deleteaUser = asyncHandler (async (req, res) => {
         const deletedUser = await User.findByIdAndDelete(id);
         res.json(deletedUser);
     } catch (error) {
-        throw new Error(error);
+        throw new Error(error.message);
     };
 });
 
@@ -95,7 +95,23 @@ const updateaUser = asyncHandler (async (req, res) => {
         });
         res.json(updatedUser);
     } catch (error) {
-        throw new Error(error);
+        throw new Error(error.message);
+    }
+});
+
+// Update User password ==============================================
+
+const updatePassword = asyncHandler (async (req, res) => {
+    const { id } = req.user;
+    const { password } = req.body;
+    console.log({password:password})
+    const user = await User.findById(id);
+    if (password){
+        user.password = password;
+        const changedPassword = await user.save();
+        res.status(200).json(changedPassword)
+    } else {
+        res.status(400).json({error:"field cannot be blank"})
     }
 });
 
@@ -110,7 +126,7 @@ const deactivateUser = asyncHandler (async (req, res) => {
         });
         res.json (deactivatedUser);
     } catch (error) {
-        throw new Error(error);
+        throw new Error(error.message);
     }
 });
 
@@ -125,7 +141,7 @@ const activateUser = asyncHandler (async (req, res) => {
         });
         res.json(activatedUser);
     } catch (error) {
-        throw new Error(error);
+        throw new Error(error.message);
     }
 });
 
@@ -148,4 +164,60 @@ const handleRefreshToken = asyncHandler (async(req, res) => {
 
 
 
-module.exports = { createUser, loginUserCtrl, getaUser, getallUsers, deleteaUser, updateaUser, deactivateUser, activateUser, handleRefreshToken, };
+// Genetate a forget password token and send a reset link to the user email ==============
+
+const forgotPasswordToken = asyncHandler(async(req, res) => {
+    const { email } = req.body;
+    const user = await User.findOne({ email });
+    if (!user) throw new Error("User not found with this email");
+    const token = await user.createPasswordResetToken()
+    await user.save();
+    const resetURL = `Hi, Please follow the reset link to reset your password. Valid for 10min from now. < href='http://localhost:8000/api/user/password-reset/${token}'>Click Here</>`;
+       const data = {
+           to: email,
+           text: "Hey User",
+           subbject: "Forgot Password Link",
+           html: resetURL,
+       };
+       sendEmail(data);
+       res.json(data);
+    try {
+    } catch(error) {
+       throw new Error(error.message);
+    }
+});
+
+// Reset user password ==========================================
+
+const resetPassword = asyncHandler(async(req, res) => {
+    const { password } = req.body;
+    const { token } = req.params;
+    const hashedToken = crypto.createHash("sha256").update(token).digest("hex");
+    const user = await User.findOne({
+        passwordResetToken: hashedToken,
+        passwordResetExpires: { $gt: Date.now() },
+    });
+    if (!user) throw new Error("Token Expired, Please try again later");
+    user.password = password;
+    user.passwordResetToken = undefined;
+    user.passwordResetExpires = undefined;
+    await user.save();
+    return res.json(user);
+});
+
+
+
+
+module.exports = { 
+    createUser, 
+    loginUserCtrl, 
+    getaUser, 
+    getallUsers, 
+    deleteaUser, 
+    updateaUser, 
+    deactivateUser, 
+    activateUser, 
+    handleRefreshToken, 
+    forgotPasswordToken,
+    resetPassword,
+};
